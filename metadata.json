@@ -1,0 +1,10 @@
+{
+  "name": "Kitaplığım",
+  "description": "Plex ve Netflix tarzı sinematik koyu temalı, kamera ile barkod okuma destekli, kişisel kütüphane ve okuma takip uygulaması.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
