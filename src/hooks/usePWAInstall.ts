@@ -10,10 +10,13 @@ export function usePWAInstall() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
+  const [isWindows, setIsWindows] = useState(false);
 
   useEffect(() => {
-    // Detect standalone mode (already installed)
+    // Detect standalone mode (already installed or running inside Electron/PWA)
+    const isElectron = !!(window as unknown as { process?: { type?: string } }).process?.type;
     const isStandalone =
+      isElectron ||
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
     setIsInstalled(isStandalone);
@@ -22,8 +25,10 @@ export function usePWAInstall() {
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
     const isAndroidDevice = /android/.test(userAgent);
+    const isWinDevice = /win/.test(userAgent) || /windows/.test(userAgent);
     setIsIOS(isIOSDevice);
     setIsAndroid(isAndroidDevice);
+    setIsWindows(isWinDevice);
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -65,6 +70,7 @@ export function usePWAInstall() {
     isInstalled,
     isIOS,
     isAndroid,
+    isWindows,
     install
   };
 }

@@ -3,8 +3,15 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// If building for Electron (ELECTRON_BUILD=true), use relative './' so files load via file:// protocol
+// If building for GitHub Pages deployment (DEPLOY_PAGES=true or GITHUB_PAGES=true), use repo path '/a/'
+// Default is './' for local/standalone/electron compatibility
+const base = process.env.ELECTRON_BUILD === 'true'
+  ? './'
+  : (process.env.DEPLOY_PAGES === 'true' || (process.env.GITHUB_ACTIONS && !process.env.ELECTRON_BUILD) ? '/a/' : './');
+
 export default defineConfig({
-  base: process.env.GITHUB_ACTIONS ? '/a/' : './',
+  base,
 
   plugins: [
     react(),

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { Smartphone, Download, Check, X, Share } from 'lucide-react';
+import { Smartphone, Download, Check, X, Share, Monitor } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { haptics } from '../utils/haptics';
 
 export const PWAInstallButton: React.FC = () => {
-  const { isInstallable, isInstalled, isIOS, isAndroid, install } = usePWAInstall();
+  const { isInstallable, isInstalled, isIOS, isAndroid, isWindows, install } = usePWAInstall();
   const [showGuide, setShowGuide] = useState(false);
   const [justInstalled, setJustInstalled] = useState(false);
 
-  // If already running inside installed standalone app, don't clutter the UI
+  // If already running inside installed standalone app or electron, don't clutter the UI
   if (isInstalled && !justInstalled) {
     return null;
   }
@@ -36,6 +36,18 @@ export const PWAInstallButton: React.FC = () => {
     );
   }
 
+  const getButtonLabel = () => {
+    if (isAndroid) return "Android'e Yükle";
+    if (isWindows) return "Windows'a Yükle";
+    return "Uygulamayı Yükle";
+  };
+
+  const getButtonIcon = () => {
+    if (isAndroid) return <Smartphone className="w-3.5 h-3.5 text-amber-400" />;
+    if (isWindows) return <Monitor className="w-3.5 h-3.5 text-amber-400" />;
+    return <Download className="w-3.5 h-3.5 text-amber-400" />;
+  };
+
   return (
     <>
       <button
@@ -44,12 +56,8 @@ export const PWAInstallButton: React.FC = () => {
         className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/15 to-amber-600/10 hover:from-amber-500/25 hover:to-amber-600/20 border border-amber-500/30 text-amber-300 text-xs font-medium shadow-sm transition-all active:scale-95 cursor-pointer"
         title="Kitaplığım uygulamasını telefonunuza veya bilgisayarınıza yükleyin"
       >
-        {isAndroid ? (
-          <Smartphone className="w-3.5 h-3.5 text-amber-400" />
-        ) : (
-          <Download className="w-3.5 h-3.5 text-amber-400" />
-        )}
-        <span>{isAndroid ? "Android'e Yükle" : "Uygulamayı Yükle"}</span>
+        {getButtonIcon()}
+        <span>{getButtonLabel()}</span>
       </button>
 
       {/* Guided manual installation modal for browsers when automatic prompt isn't fired yet */}
@@ -64,8 +72,8 @@ export const PWAInstallButton: React.FC = () => {
           >
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
               <div className="flex items-center gap-2 text-amber-400 font-semibold text-sm">
-                <Smartphone className="w-4 h-4" />
-                <span>Telefona Yükleme Rehberi</span>
+                {isWindows ? <Monitor className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+                <span>{isWindows ? "Windows'a Yükleme" : "Telefona Yükleme Rehberi"}</span>
               </div>
               <button 
                 type="button"
@@ -76,7 +84,19 @@ export const PWAInstallButton: React.FC = () => {
               </button>
             </div>
 
-            {isIOS ? (
+            {isWindows ? (
+              <div className="space-y-3 text-xs text-zinc-300">
+                <p>Uygulamayı Windows bilgisayarınızda bağımsız bir program gibi çalıştırmak için:</p>
+                <ol className="space-y-2 list-decimal list-inside text-zinc-200">
+                  <li>Tarayıcınızın sağ üstündeki <strong>adres çubuğundaki yükleme simgesine</strong> veya <strong>üç nokta (⋮)</strong> menüsüne tıklayın.</li>
+                  <li><strong>"Kitaplığım Uygulamasını Yükle"</strong> seçeneğini seçin.</li>
+                  <li>Masaüstünüze ve Başlat menünüze tek tıkla açılan bağımsız Windows programı olarak eklenecektir.</li>
+                </ol>
+                <div className="mt-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-200/90">
+                  💡 İsterseniz GitHub <strong>Releases</strong> sayfamızdan doğrudan <strong>.exe (Kurulum veya Taşınabilir Portable)</strong> dosyasını da indirebilirsiniz.
+                </div>
+              </div>
+            ) : isIOS ? (
               <div className="space-y-3 text-xs text-zinc-300">
                 <p>iPhone veya iPad üzerinde tek dokunuşla ana ekrana eklemek için:</p>
                 <ol className="space-y-2 list-decimal list-inside text-zinc-200">
@@ -99,7 +119,7 @@ export const PWAInstallButton: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowGuide(false)}
-              className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-white transition-colors"
+              className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-white transition-colors cursor-pointer"
             >
               Anladım
             </button>

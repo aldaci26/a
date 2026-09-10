@@ -1,0 +1,67 @@
+name: Build and Release Windows App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Install Electron & Builder for Release
+        run: npm install --save-dev electron@34.2.0 electron-builder@25.1.8
+
+      - name: Build Web App (Optimized for Electron)
+        env:
+          ELECTRON_BUILD: 'true'
+        run: npm run build
+
+      - name: Package Windows .exe (Setup & Portable)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --config electron-builder.json --win --x64
+
+      - name: Create GitHub Release & Upload Binaries
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: ${{ github.ref_name || 'v2.0.0' }}
+          name: Kitaplığım Masaüstü Sürümü ${{ github.ref_name || 'v2.0.0' }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## 📚 Kitaplığım Windows Masaüstü Sürümü
+
+            Windows kullanıcıları için optimize edilmiş, sinematik arayüzlü ve çevrimdışı çalışan kişisel kütüphane uygulaması.
+
+            ### 💾 İndirme Seçenekleri:
+            - **Kurulum Programı (Setup)**: `Kitaplığım Setup x.x.x.exe` (Masaüstü ve Başlat menüsü kısayolu oluşturur)
+            - **Taşınabilir Sürüm (Portable)**: `Kitaplığım-Portable-x.x.x.exe` (Kurulum gerektirmeden doğrudan çift tıklamayla çalışır, USB bellekler için idealdir)
+
+            ### ✨ Öne Çıkanlar:
+            - İnternet gerektirmeyen tam yerel çalışma desteği
+            - Sinematik koyu tema ve doğal ortam sesleri
+            - Otomatik ISBN ve kitap arama motoru
+            - Detaylı okuma takibi, sayfa hesaplaması ve sözler
+          files: |
+            release/*.exe
+            release/*.blockmap
