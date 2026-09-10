@@ -8,8 +8,10 @@ import { BookDetailModal } from './components/BookDetailModal';
 import { ConfirmDeleteModal } from './components/ConfirmDeleteModal';
 import { AmbientBackground } from './components/AmbientBackground';
 import { CompactShowcase } from './components/CompactShowcase';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { audioEngine } from './utils/audioEngine';
 import { loadBooks, saveBooks } from './utils/storage';
+import { haptics } from './utils/haptics';
 
 export const App: React.FC = () => {
   // Books state - Default strictly sorted by dateAdded descending (newest on top)
@@ -46,18 +48,21 @@ export const App: React.FC = () => {
 
   // Add online book - automatically showcases the newest book!
   const handleAddOnlineBook = useCallback((newBook: Book) => {
+    haptics.success();
     setBooks((prev) => [newBook, ...prev]);
     setShowcaseBookId(newBook.id);
   }, []);
 
   // Trigger confirmation modal for deleting a book
   const handleRequestDelete = useCallback((book: Book) => {
+    haptics.tap();
     setBookToDelete(book);
   }, []);
 
   // Confirmed delete
   const handleConfirmDelete = useCallback(() => {
     if (!bookToDelete) return;
+    haptics.warning();
     const targetId = bookToDelete.id;
     setBooks((prev) => prev.filter((b) => b.id !== targetId));
     if (detailModalBook && detailModalBook.id === targetId) {
@@ -169,6 +174,9 @@ export const App: React.FC = () => {
         onConfirm={handleConfirmDelete}
         onCancel={() => setBookToDelete(null)}
       />
+
+      {/* Offline Status Toast Indicator */}
+      <OfflineIndicator />
     </div>
   );
 };

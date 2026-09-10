@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { AmbientSoundMode } from '../types';
 import { audioEngine } from '../utils/audioEngine';
+import { PWAInstallButton } from './PWAInstallButton';
+import { haptics } from '../utils/haptics';
 
 interface HeaderProps {
   onOpenSearchModal: () => void;
@@ -39,6 +41,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   }, []);
 
   const handleSelectSound = (mode: AmbientSoundMode) => {
+    haptics.modeSwitch();
     setSoundMode(mode);
     setIsSoundMenuOpen(false);
 
@@ -119,8 +122,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           </div>
         </button>
 
-        {/* Right: Real Ambient Sound Selector */}
-        <div className="flex items-center gap-3">
+        {/* Right: Real Ambient Sound Selector & Install Button */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <PWAInstallButton />
+
           <div className="relative" ref={soundMenuRef}>
             <button
               type="button"

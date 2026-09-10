@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Book, SortField, SortOrder } from '../types';
-import { Trash2, ArrowUpDown, ArrowUp, ArrowDown, BookMarked, Info } from 'lucide-react';
+import { Trash2, ArrowUpDown, ArrowUp, ArrowDown, BookMarked, Info, BookOpen, Calendar, Building, Sparkles } from 'lucide-react';
 import { audioEngine } from '../utils/audioEngine';
+import { haptics } from '../utils/haptics';
 
 interface TableViewProps {
   books: Book[];
@@ -23,6 +24,7 @@ export const TableView: React.FC<TableViewProps> = ({
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   const handleSort = (field: SortField) => {
+    haptics.tap();
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -87,6 +89,7 @@ export const TableView: React.FC<TableViewProps> = ({
           <h2 className="text-xl sm:text-2xl font-bold font-serif-display text-white tracking-normal">
             Kitaplarım
           </h2>
+          <p className="text-xs text-zinc-400 mt-0.5">Toplam {books.length} kayıtlı eser</p>
         </div>
 
         {/* Mobile & Quick Sort Picker */}
@@ -98,10 +101,11 @@ export const TableView: React.FC<TableViewProps> = ({
               const [field, order] = e.target.value.split('-') as [SortField, SortOrder];
               setSortField(field);
               setSortOrder(order);
+              haptics.tap();
             }}
-            className="px-2.5 py-1.5 rounded-xl bg-zinc-900 border border-white/[0.08] text-zinc-200 text-xs focus:outline-none focus:border-amber-500 cursor-pointer"
+            className="px-2.5 py-2 rounded-xl bg-zinc-900 border border-white/[0.08] text-zinc-200 text-xs focus:outline-none focus:border-amber-500 cursor-pointer"
           >
-            <option value="dateAdded-desc">Eklenme Tarihi (Yeniden Eskiye - Varsayılan)</option>
+            <option value="dateAdded-desc">Eklenme Tarihi (Yeniden Eskiye)</option>
             <option value="dateAdded-asc">Eklenme Tarihi (Eskiden Yeniye)</option>
             <option value="title-asc">Kitap İsmi (A - Z)</option>
             <option value="title-desc">Kitap İsmi (Z - A)</option>
@@ -115,152 +119,247 @@ export const TableView: React.FC<TableViewProps> = ({
         </div>
       </div>
 
-      {/* Clean Table Container (No Book Images) */}
-      <div className="rounded-2xl bg-zinc-950/45 border border-white/[0.07] overflow-hidden shadow-xl backdrop-blur-md">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
-            <thead className="bg-zinc-950/60 text-zinc-400 text-[11px] uppercase tracking-wider border-b border-white/[0.06] select-none">
-              <tr>
-                <th 
-                  className="py-3.5 px-4 sm:px-6 cursor-pointer hover:text-white transition-colors"
-                  onClick={() => handleSort('title')}
+      {sortedBooks.length === 0 ? (
+        <div className="py-14 text-center rounded-2xl bg-zinc-950/45 border border-white/[0.07] p-6 text-zinc-400">
+          <BookMarked className="w-10 h-10 mx-auto mb-3 text-zinc-600" />
+          <p className="text-sm font-medium text-zinc-300">Henüz kitap bulunmuyor</p>
+          <p className="text-xs text-zinc-500 mt-1">Sol üstteki logoya veya arama butonuna dokunarak yeni kitap ekleyebilirsiniz.</p>
+        </div>
+      ) : (
+        <>
+          {/* Mobile-First Touch Card View (Phones & Small Tablets) */}
+          <div className="md:hidden space-y-3">
+            {sortedBooks.map((book) => {
+              const isShowcased = book.id === selectedShowcaseId;
+              return (
+                <div
+                  key={book.id}
+                  onClick={() => {
+                    haptics.tap();
+                    audioEngine.playPageTurn();
+                    if (onSelectForShowcase) {
+                      onSelectForShowcase(book);
+                    } else {
+                      onOpenDetailModal(book);
+                    }
+                  }}
+                  className={`p-4 rounded-2xl border transition-all active:scale-[0.99] cursor-pointer ${
+                    isShowcased
+                      ? 'bg-amber-500/[0.09] border-amber-500/40 shadow-[0_0_16px_rgba(245,158,11,0.1)]'
+                      : 'bg-zinc-900/60 border-white/[0.06] hover:border-amber-500/30'
+                  }`}
                 >
-                  <span>Kitap & Yazar</span>
-                  {renderSortIndicator('title')}
-                </th>
-                <th 
-                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors whitespace-nowrap"
-                  onClick={() => handleSort('pages')}
-                >
-                  <span>Sayfa Sayısı</span>
-                  {renderSortIndicator('pages')}
-                </th>
-                <th 
-                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors whitespace-nowrap"
-                  onClick={() => handleSort('year')}
-                >
-                  <span>Yıl</span>
-                  {renderSortIndicator('year')}
-                </th>
-                <th 
-                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors whitespace-nowrap"
-                  onClick={() => handleSort('publisher')}
-                >
-                  <span>Yayınevi</span>
-                  {renderSortIndicator('publisher')}
-                </th>
-                <th 
-                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors whitespace-nowrap"
-                  onClick={() => handleSort('dateAdded')}
-                >
-                  <span>Eklenme Tarihi</span>
-                  {renderSortIndicator('dateAdded')}
-                </th>
-                <th className="py-3.5 px-4 text-right">İşlem</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.04]">
-              {sortedBooks.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-zinc-400">
-                    <BookMarked className="w-8 h-8 mx-auto mb-2 text-zinc-600" />
-                    Henüz kitap bulunmuyor. Sol üstteki logoya tıklayarak yeni kitap ekleyebilirsiniz.
-                  </td>
-                </tr>
-              ) : (
-                sortedBooks.map((book) => {
-                  const isShowcased = book.id === selectedShowcaseId;
-                  return (
-                    <tr
-                      key={book.id}
-                      onClick={() => {
-                        audioEngine.playPageTurn();
-                        if (onSelectForShowcase) {
-                          onSelectForShowcase(book);
-                        } else {
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        {isShowcased && (
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                        )}
+                        <h3 className={`text-sm font-semibold truncate ${
+                          isShowcased ? 'text-amber-300' : 'text-white'
+                        }`}>
+                          {book.title}
+                        </h3>
+                      </div>
+                      <p className="text-xs text-zinc-400 mt-0.5 truncate">{book.author}</p>
+                    </div>
+
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          haptics.tap();
+                          audioEngine.playPageTurn();
                           onOpenDetailModal(book);
-                        }
-                      }}
-                      className={`transition-all duration-200 cursor-pointer group ${
-                        isShowcased
-                          ? 'bg-amber-500/[0.09] ring-1 ring-inset ring-amber-500/30'
-                          : 'hover:bg-white/[0.03]'
-                      }`}
-                      title="Bu kitabı vitrine taşımak için tıklayın"
+                        }}
+                        className="p-2.5 rounded-xl text-zinc-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors"
+                        title="Kitap Detayı"
+                      >
+                        <Info className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          haptics.warning();
+                          onRequestDelete(book);
+                        }}
+                        className="p-2.5 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        title="Kitabı Sil"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Metadata Pills */}
+                  <div className="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-white/[0.04] text-[11px] text-zinc-400">
+                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-800/80 border border-white/[0.04]">
+                      <BookOpen className="w-3 h-3 text-amber-400/80" />
+                      {book.totalPages} Sayfa
+                    </span>
+                    {book.originalYear && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-800/80 border border-white/[0.04]">
+                        <Calendar className="w-3 h-3 text-amber-400/80" />
+                        {book.originalYear}
+                      </span>
+                    )}
+                    {book.publisher && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-800/80 border border-white/[0.04] truncate max-w-[140px]">
+                        <Building className="w-3 h-3 text-amber-400/80" />
+                        {book.publisher}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Comprehensive Table Container */}
+          <div className="hidden md:block rounded-2xl bg-zinc-950/45 border border-white/[0.07] overflow-hidden shadow-xl backdrop-blur-md">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-zinc-300">
+                <thead className="bg-zinc-950/60 text-zinc-400 text-[11px] uppercase tracking-wider border-b border-white/[0.06] select-none">
+                  <tr>
+                    <th 
+                      className="py-3.5 px-4 sm:px-6 cursor-pointer hover:text-white transition-colors"
+                      onClick={() => handleSort('title')}
                     >
-                      {/* Book & Author - Clean Typographic layout without book cover image */}
-                      <td className="py-3.5 px-4 sm:px-6">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-xs sm:text-sm font-semibold truncate transition-colors ${
-                              isShowcased ? 'text-amber-300' : 'text-white group-hover:text-amber-300'
-                            }`}>
-                              {book.title}
+                      <span>Kitap & Yazar</span>
+                      {renderSortIndicator('title')}
+                    </th>
+                    <th 
+                      className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors whitespace-nowrap"
+                      onClick={() => handleSort('pages')}
+                    >
+                      <span>Sayfa Sayısı</span>
+                      {renderSortIndicator('pages')}
+                    </th>
+                    <th 
+                      className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors whitespace-nowrap"
+                      onClick={() => handleSort('year')}
+                    >
+                      <span>Yıl</span>
+                      {renderSortIndicator('year')}
+                    </th>
+                    <th 
+                      className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors whitespace-nowrap"
+                      onClick={() => handleSort('publisher')}
+                    >
+                      <span>Yayınevi</span>
+                      {renderSortIndicator('publisher')}
+                    </th>
+                    <th 
+                      className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors whitespace-nowrap"
+                      onClick={() => handleSort('dateAdded')}
+                    >
+                      <span>Eklenme Tarihi</span>
+                      {renderSortIndicator('dateAdded')}
+                    </th>
+                    <th className="py-3.5 px-4 text-right">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {sortedBooks.map((book) => {
+                    const isShowcased = book.id === selectedShowcaseId;
+                    return (
+                      <tr
+                        key={book.id}
+                        onClick={() => {
+                          haptics.tap();
+                          audioEngine.playPageTurn();
+                          if (onSelectForShowcase) {
+                            onSelectForShowcase(book);
+                          } else {
+                            onOpenDetailModal(book);
+                          }
+                        }}
+                        className={`transition-all duration-200 cursor-pointer group ${
+                          isShowcased
+                            ? 'bg-amber-500/[0.09] ring-1 ring-inset ring-amber-500/30'
+                            : 'hover:bg-white/[0.03]'
+                        }`}
+                        title="Bu kitabı vitrine taşımak için tıklayın"
+                      >
+                        {/* Book & Author - Clean Typographic layout without book cover image */}
+                        <td className="py-3.5 px-4 sm:px-6">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-xs sm:text-sm font-semibold truncate transition-colors ${
+                                isShowcased ? 'text-amber-300' : 'text-white group-hover:text-amber-300'
+                              }`}>
+                                {book.title}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-zinc-400 block truncate mt-0.5">
+                              {book.author}
                             </span>
                           </div>
-                          <span className="text-[11px] text-zinc-400 block truncate mt-0.5">
-                            {book.author}
-                          </span>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Sayfa Sayısı */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-zinc-300 font-medium">
-                        {book.totalPages} Sayfa
-                      </td>
+                        {/* Sayfa Sayısı */}
+                        <td className="py-3.5 px-4 whitespace-nowrap text-zinc-300 font-medium">
+                          {book.totalPages} Sayfa
+                        </td>
 
-                      {/* Yıl */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-zinc-400">
-                        {book.originalYear || '—'}
-                      </td>
+                        {/* Yıl */}
+                        <td className="py-3.5 px-4 whitespace-nowrap text-zinc-400">
+                          {book.originalYear || '—'}
+                        </td>
 
-                      {/* Yayınevi */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-zinc-400">
-                        {book.publisher || '—'}
-                      </td>
+                        {/* Yayınevi */}
+                        <td className="py-3.5 px-4 whitespace-nowrap text-zinc-400">
+                          {book.publisher || '—'}
+                        </td>
 
-                      {/* Eklenme Tarihi */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-zinc-400">
-                        {formatDate(book.dateAdded)}
-                      </td>
+                        {/* Eklenme Tarihi */}
+                        <td className="py-3.5 px-4 whitespace-nowrap text-zinc-400">
+                          {formatDate(book.dateAdded)}
+                        </td>
 
-                      {/* Action: Detail & Delete buttons */}
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              audioEngine.playPageTurn();
-                              onOpenDetailModal(book);
-                            }}
-                            className="p-2 rounded-xl text-zinc-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors active:scale-95 cursor-pointer"
-                            title="Kitap Detaylarını İncele"
-                          >
-                            <Info className="w-4 h-4" />
-                          </button>
+                        {/* Action: Detail & Delete buttons */}
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                haptics.tap();
+                                audioEngine.playPageTurn();
+                                onOpenDetailModal(book);
+                              }}
+                              className="p-2 rounded-xl text-zinc-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors active:scale-95 cursor-pointer"
+                              title="Kitap Detaylarını İncele"
+                            >
+                              <Info className="w-4 h-4" />
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onRequestDelete(book);
-                            }}
-                            className="p-2 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors active:scale-95 cursor-pointer"
-                            title="Kitabı Sil"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                haptics.warning();
+                                onRequestDelete(book);
+                              }}
+                              className="p-2 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors active:scale-95 cursor-pointer"
+                              title="Kitabı Sil"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
+

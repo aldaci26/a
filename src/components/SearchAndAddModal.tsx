@@ -14,6 +14,7 @@ import { generateQuotesForBook } from '../utils/quoteGenerator';
 import { audioEngine } from '../utils/audioEngine';
 import { getRecommendations } from '../utils/recommendationEngine';
 import { BookCover } from './BookCover';
+import { haptics } from '../utils/haptics';
 
 interface SearchAndAddModalProps {
   isOpen: boolean;
@@ -178,6 +179,7 @@ export const SearchAndAddModal: React.FC<SearchAndAddModalProps> = ({
     : [];
 
   const handleAddOnline = (item: OnlineResult | { id: string; title: string; author: string; totalPages: number; originalYear: number; publisher: string; coverImage?: string; description: string; quotes?: string[] }) => {
+    haptics.success();
     audioEngine.playChime();
     setAddedIds(prev => ({ ...prev, [item.id]: true }));
 

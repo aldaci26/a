@@ -10,6 +10,7 @@ import {
 import { Book, AmbientSoundMode } from '../types';
 import { BookCover } from './BookCover';
 import { audioEngine } from '../utils/audioEngine';
+import { haptics } from '../utils/haptics';
 
 interface CompactShowcaseProps {
   book: Book | null;
@@ -77,6 +78,7 @@ export const CompactShowcase: React.FC<CompactShowcaseProps> = React.memo(({
         {/* Left: Compact Book Cover */}
         <div 
           onClick={() => {
+            haptics.tap();
             audioEngine.playPageTurn();
             onOpenDetailModal(book);
           }}
@@ -157,6 +159,7 @@ export const CompactShowcase: React.FC<CompactShowcaseProps> = React.memo(({
               <button
                 type="button"
                 onClick={() => {
+                  haptics.tap();
                   audioEngine.playPageTurn();
                   onOpenDetailModal(book);
                 }}
@@ -170,6 +173,7 @@ export const CompactShowcase: React.FC<CompactShowcaseProps> = React.memo(({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  haptics.warning();
                   onRequestDelete(book);
                 }}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium transition-all active:scale-95 cursor-pointer"
