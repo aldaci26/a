@@ -44,6 +44,7 @@ export const SearchAndAddModal: React.FC<SearchAndAddModalProps> = ({
   const [query, setQuery] = useState('');
   const [onlineResults, setOnlineResults] = useState<OnlineResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
 
   const recommendations = useMemo(() => {
@@ -54,6 +55,7 @@ export const SearchAndAddModal: React.FC<SearchAndAddModalProps> = ({
     if (!isOpen) {
       setQuery('');
       setOnlineResults([]);
+      setSearchNotice(null);
       return;
     }
 
@@ -66,24 +68,43 @@ export const SearchAndAddModal: React.FC<SearchAndAddModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Search via Open Library API + Fallback catalog
+  // Search via Open Library API + Fallback catalog with AbortController to prevent race conditions
   useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed || trimmed.length < 2) {
       setOnlineResults([]);
       setIsLoading(false);
+      setSearchNotice(null);
       return;
     }
 
+    const abortController = new AbortController();
+
     const timer = setTimeout(async () => {
       setIsLoading(true);
+      setSearchNotice(null);
       try {
         const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(trimmed)}&limit=10`;
-        const res = await fetch(url);
+        const res = await fetch(url, { signal: abortController.signal });
+        if (!res.ok) {
+          throw new Error(`Open Library API yanıt vermedi (${res.status})`);
+        }
         const data = await res.json();
 
         if (data && Array.isArray(data.docs) && data.docs.length > 0) {
-          const parsed: OnlineResult[] = data.docs.map((doc: any, index: number) => {
+          interface OpenLibraryDoc {
+            title?: string;
+            author_name?: string[];
+            number_of_pages_median?: number;
+            number_of_pages?: number[];
+            first_publish_year?: number;
+            publisher?: string[];
+            cover_i?: number;
+            isbn?: string[];
+            key?: string;
+          }
+
+          const parsed: OnlineResult[] = (data.docs as OpenLibraryDoc[]).map((doc, index) => {
             const title = doc.title || 'İsimsiz Eser';
             const author = doc.author_name ? doc.author_name[0] : 'Bilinmeyen Yazar';
             const pages = doc.number_of_pages_median || (doc.number_of_pages ? doc.number_of_pages[0] : 240);
@@ -106,10 +127,17 @@ export const SearchAndAddModal: React.FC<SearchAndAddModalProps> = ({
           });
 
           setOnlineResults(parsed);
+          setSearchNotice(null);
         } else {
           setOnlineResults([]);
         }
-      } catch {
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return; // Cancelled intentionally, ignore
+        }
+        console.warn('Arama API hatası veya ağ kesintisi:', err);
+        setSearchNotice('Çevrimiçi arama servisine ulaşılamadı. Yerel öneri kataloğundan eşleşmeler gösteriliyor.');
+
         // Fallback from recommendation catalog
         const localMatches = recommendations
           .filter(r => 
@@ -132,7 +160,10 @@ export const SearchAndAddModal: React.FC<SearchAndAddModalProps> = ({
       }
     }, 400);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      abortController.abort();
+    };
   }, [query, recommendations]);
 
   if (!isOpen) return null;
@@ -151,7 +182,7 @@ export const SearchAndAddModal: React.FC<SearchAndAddModalProps> = ({
     setAddedIds(prev => ({ ...prev, [item.id]: true }));
 
     const newBook: Book = {
-      id: `book-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      id: `book-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       title: item.title,
       author: item.author,
       totalPages: item.totalPages,
@@ -214,7 +245,13 @@ export const SearchAndAddModal: React.FC<SearchAndAddModalProps> = ({
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin">
-          
+          {searchNotice && (
+            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <span>{searchNotice}</span>
+            </div>
+          )}
+
           {/* 1. Existing Library Results */}
           {libraryMatches.length > 0 && (
             <div>

@@ -6,7 +6,7 @@ interface AmbientBackgroundProps {
   lightningFlash: boolean;
 }
 
-export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ mode, lightningFlash }) => {
+export const AmbientBackground: React.FC<AmbientBackgroundProps> = React.memo(({ mode, lightningFlash }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const lightningFlashRef = useRef(lightningFlash);
   lightningFlashRef.current = lightningFlash;
@@ -1722,4 +1722,4 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ mode, ligh
       )}
     </div>
   );
-};
+});

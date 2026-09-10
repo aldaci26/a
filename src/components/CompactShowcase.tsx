@@ -19,7 +19,7 @@ interface CompactShowcaseProps {
   ambientMode?: AmbientSoundMode;
 }
 
-export const CompactShowcase: React.FC<CompactShowcaseProps> = ({
+export const CompactShowcase: React.FC<CompactShowcaseProps> = React.memo(({
   book,
   onOpenDetailModal,
   onRequestDelete,
@@ -185,4 +185,4 @@ export const CompactShowcase: React.FC<CompactShowcaseProps> = ({
       </div>
     </div>
   );
-};
+});

@@ -1,11 +1,3 @@
-export interface QuoteItem {
-  id: string;
-  bookId: string;
-  bookTitle: string;
-  author: string;
-  text: string;
-}
-
 export interface Book {
   id: string;
   title: string;
@@ -19,8 +11,6 @@ export interface Book {
   quotes: string[];
   dateAdded: string;
 }
-
-export type ViewMode = 'home' | 'list' | 'quotes';
 
 export type AmbientSoundMode = 'off' | 'fireplace' | 'rain' | 'ocean' | 'forest';
 

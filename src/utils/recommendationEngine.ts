@@ -112,15 +112,16 @@ const CATALOG_RECOMMENDATIONS: RecommendedBook[] = [
   }
 ];
 
-export function getRecommendations(existingBooks: Book[]): RecommendedBook[] {
-  const existingTitles = new Set(existingBooks.map(b => b.title.toLowerCase().trim()));
-  const existingAuthors = new Set(existingBooks.map(b => b.author.toLowerCase().trim()));
+export function getRecommendations(existingBooks: Book[] = []): RecommendedBook[] {
+  const books = Array.isArray(existingBooks) ? existingBooks : [];
+  const existingTitles = new Set(books.map(b => (b.title || '').toLowerCase().trim()));
+  const existingAuthors = new Set(books.map(b => (b.author || '').toLowerCase().trim()));
 
-  const available = CATALOG_RECOMMENDATIONS.filter(rec => !existingTitles.has(rec.title.toLowerCase().trim()));
+  const available = CATALOG_RECOMMENDATIONS.filter(rec => !existingTitles.has((rec.title || '').toLowerCase().trim()));
 
   return available.sort((a, b) => {
-    const aAuthorMatches = existingAuthors.has(a.author.toLowerCase().trim()) ? 1 : 0;
-    const bAuthorMatches = existingAuthors.has(b.author.toLowerCase().trim()) ? 1 : 0;
+    const aAuthorMatches = existingAuthors.has((a.author || '').toLowerCase().trim()) ? 1 : 0;
+    const bAuthorMatches = existingAuthors.has((b.author || '').toLowerCase().trim()) ? 1 : 0;
     return bAuthorMatches - aAuthorMatches;
   });
 }

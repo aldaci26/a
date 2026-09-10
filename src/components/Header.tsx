@@ -18,7 +18,7 @@ interface HeaderProps {
   totalBooks: number;
 }
 
-export const Header: React.FC<HeaderProps> = ({
+export const Header: React.FC<HeaderProps> = React.memo(({
   onOpenSearchModal,
   soundMode,
   setSoundMode,
@@ -215,4 +215,4 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
     </header>
   );
-};
+});

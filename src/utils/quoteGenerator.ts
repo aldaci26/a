@@ -80,18 +80,24 @@ const DEFAULT_QUOTES = [
   'Sayfalar arasında kaybolmak, aslında insanın kendi kendini bulmasıdır.'
 ];
 
-export function generateQuotesForBook(title: string, author: string, category: string = ''): string[] {
-  const authorLower = author.toLowerCase();
+export function generateQuotesForBook(title: string = '', author: string = '', category: string = ''): string[] {
+  const safeAuthor = (author || '').trim().toLowerCase();
+  const safeCategory = (category || '').trim().toLowerCase();
   
-  for (const [key, quotes] of Object.entries(FAMOUS_AUTHOR_QUOTES)) {
-    if (authorLower.includes(key)) {
-      return quotes;
+  if (safeAuthor) {
+    for (const [key, quotes] of Object.entries(FAMOUS_AUTHOR_QUOTES)) {
+      if (safeAuthor.includes(key)) {
+        return quotes;
+      }
     }
   }
 
-  for (const [catKey, quotes] of Object.entries(GENRE_QUOTES)) {
-    if (category.toLowerCase().includes(catKey.toLowerCase()) || catKey.toLowerCase().includes(category.toLowerCase())) {
-      return quotes;
+  if (safeCategory) {
+    for (const [catKey, quotes] of Object.entries(GENRE_QUOTES)) {
+      const catKeyLower = catKey.toLowerCase();
+      if (safeCategory.includes(catKeyLower) || catKeyLower.includes(safeCategory)) {
+        return quotes;
+      }
     }
   }
 

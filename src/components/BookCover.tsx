@@ -52,7 +52,7 @@ const COVER_THEMES = [
   }
 ];
 
-export const BookCover: React.FC<BookCoverProps> = ({
+export const BookCover: React.FC<BookCoverProps> = React.memo(({
   coverImage,
   title,
   author,
@@ -177,4 +177,4 @@ export const BookCover: React.FC<BookCoverProps> = ({
       </div>
     </div>
   );
-};
+});

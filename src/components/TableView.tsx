@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Book, SortField, SortOrder } from '../types';
 import { Trash2, ArrowUpDown, ArrowUp, ArrowDown, BookMarked, Info } from 'lucide-react';
 import { audioEngine } from '../utils/audioEngine';
@@ -33,25 +33,29 @@ export const TableView: React.FC<TableViewProps> = ({
     audioEngine.playChime();
   };
 
-  const sortedBooks = [...books].sort((a, b) => {
-    let comparison = 0;
-    if (sortField === 'dateAdded') {
-      const timeA = new Date(a.dateAdded || 0).getTime() || 0;
-      const timeB = new Date(b.dateAdded || 0).getTime() || 0;
-      comparison = timeA - timeB;
-    } else if (sortField === 'title') {
-      comparison = a.title.localeCompare(b.title, 'tr');
-    } else if (sortField === 'author') {
-      comparison = a.author.localeCompare(b.author, 'tr');
-    } else if (sortField === 'pages') {
-      comparison = a.totalPages - b.totalPages;
-    } else if (sortField === 'year') {
-      comparison = (a.originalYear || 0) - (b.originalYear || 0);
-    } else if (sortField === 'publisher') {
-      comparison = (a.publisher || '').localeCompare(b.publisher || '', 'tr');
-    }
-    return sortOrder === 'asc' ? comparison : -comparison;
-  });
+  const sortedBooks = useMemo(() => {
+    return [...books].sort((a, b) => {
+      let comparison = 0;
+      if (sortField === 'dateAdded') {
+        const timeA = new Date(a.dateAdded || 0).getTime();
+        const timeB = new Date(b.dateAdded || 0).getTime();
+        const validA = isNaN(timeA) ? 0 : timeA;
+        const validB = isNaN(timeB) ? 0 : timeB;
+        comparison = validA - validB;
+      } else if (sortField === 'title') {
+        comparison = (a.title || '').localeCompare(b.title || '', 'tr');
+      } else if (sortField === 'author') {
+        comparison = (a.author || '').localeCompare(b.author || '', 'tr');
+      } else if (sortField === 'pages') {
+        comparison = (a.totalPages || 0) - (b.totalPages || 0);
+      } else if (sortField === 'year') {
+        comparison = (a.originalYear || 0) - (b.originalYear || 0);
+      } else if (sortField === 'publisher') {
+        comparison = (a.publisher || '').localeCompare(b.publisher || '', 'tr');
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [books, sortField, sortOrder]);
 
   const renderSortIndicator = (field: SortField) => {
     if (sortField !== field) {

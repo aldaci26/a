@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Book, AmbientSoundMode } from './types';
 import { INITIAL_BOOKS } from './data/initialBook';
 import { Header } from './components/Header';
@@ -9,40 +9,11 @@ import { ConfirmDeleteModal } from './components/ConfirmDeleteModal';
 import { AmbientBackground } from './components/AmbientBackground';
 import { CompactShowcase } from './components/CompactShowcase';
 import { audioEngine } from './utils/audioEngine';
+import { loadBooks, saveBooks } from './utils/storage';
 
 export const App: React.FC = () => {
   // Books state - Default strictly sorted by dateAdded descending (newest on top)
-  const [books, setBooks] = useState<Book[]>(() => {
-    try {
-      const saved = localStorage.getItem('kitaplik_books_v11') || localStorage.getItem('kitaplik_books_v10');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Restore coverImage from INITIAL_BOOKS if missing or empty
-          const healed = parsed.map((b: Book) => {
-            if (!b.coverImage || b.coverImage.trim() === '') {
-              const matched = INITIAL_BOOKS.find(
-                (ib) => ib.id === b.id || ib.title.toLowerCase() === b.title.toLowerCase()
-              );
-              if (matched && matched.coverImage) {
-                return { ...b, coverImage: matched.coverImage };
-              }
-            }
-            return b;
-          });
-
-          return [...healed].sort(
-            (a, b) => (new Date(b.dateAdded || 0).getTime() || 0) - (new Date(a.dateAdded || 0).getTime() || 0)
-          );
-        }
-      }
-    } catch {
-      // fallback
-    }
-    return [...INITIAL_BOOKS].sort(
-      (a, b) => (new Date(b.dateAdded || 0).getTime() || 0) - (new Date(a.dateAdded || 0).getTime() || 0)
-    );
-  });
+  const [books, setBooks] = useState<Book[]>(() => loadBooks());
 
   // Showcase state - Default to the most recently added book (books[0])
   const [showcaseBookId, setShowcaseBookId] = useState<string | null>(null);
@@ -68,28 +39,24 @@ export const App: React.FC = () => {
     });
   }, []);
 
-  // Sync to localStorage
+  // Sync to localStorage safely
   useEffect(() => {
-    try {
-      localStorage.setItem('kitaplik_books_v11', JSON.stringify(books));
-    } catch {
-      // ignore
-    }
+    saveBooks(books);
   }, [books]);
 
   // Add online book - automatically showcases the newest book!
-  const handleAddOnlineBook = (newBook: Book) => {
+  const handleAddOnlineBook = useCallback((newBook: Book) => {
     setBooks((prev) => [newBook, ...prev]);
     setShowcaseBookId(newBook.id);
-  };
+  }, []);
 
   // Trigger confirmation modal for deleting a book
-  const handleRequestDelete = (book: Book) => {
+  const handleRequestDelete = useCallback((book: Book) => {
     setBookToDelete(book);
-  };
+  }, []);
 
   // Confirmed delete
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = useCallback(() => {
     if (!bookToDelete) return;
     const targetId = bookToDelete.id;
     setBooks((prev) => prev.filter((b) => b.id !== targetId));
@@ -101,7 +68,28 @@ export const App: React.FC = () => {
     }
     setBookToDelete(null);
     audioEngine.playChime();
-  };
+  }, [bookToDelete, detailModalBook, showcaseBookId]);
+
+  // Modal and detail handlers
+  const handleOpenSearchModal = useCallback(() => {
+    setIsSearchModalOpen(true);
+  }, []);
+
+  const handleCloseSearchModal = useCallback(() => {
+    setIsSearchModalOpen(false);
+  }, []);
+
+  const handleOpenDetailModal = useCallback((book: Book) => {
+    setDetailModalBook(book);
+  }, []);
+
+  const handleCloseDetailModal = useCallback(() => {
+    setDetailModalBook(null);
+  }, []);
+
+  const handleSelectForShowcase = useCallback((book: Book) => {
+    setShowcaseBookId(book.id);
+  }, []);
 
   // Dynamic selection styling based on ambient sound mode
   const getSelectionClass = () => {
@@ -127,7 +115,7 @@ export const App: React.FC = () => {
 
       {/* Header: Clickable logo on left adds books, real ambient sounds on right */}
       <Header
-        onOpenSearchModal={() => setIsSearchModalOpen(true)}
+        onOpenSearchModal={handleOpenSearchModal}
         soundMode={soundMode}
         setSoundMode={setSoundMode}
         totalBooks={books.length}
@@ -140,7 +128,7 @@ export const App: React.FC = () => {
           <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
             <CompactShowcase
               book={currentShowcaseBook}
-              onOpenDetailModal={(b) => setDetailModalBook(b)}
+              onOpenDetailModal={handleOpenDetailModal}
               onRequestDelete={handleRequestDelete}
               isLatestAdded={currentShowcaseBook.id === books[0]?.id}
               ambientMode={soundMode}
@@ -152,27 +140,25 @@ export const App: React.FC = () => {
         <TableView
           books={books}
           onRequestDelete={handleRequestDelete}
-          onOpenDetailModal={(b) => setDetailModalBook(b)}
+          onOpenDetailModal={handleOpenDetailModal}
           selectedShowcaseId={currentShowcaseBook?.id}
-          onSelectForShowcase={(b) => setShowcaseBookId(b.id)}
+          onSelectForShowcase={handleSelectForShowcase}
         />
       </main>
 
       {/* Search & Add Book Modal (Opens on Logo Click) */}
       <SearchAndAddModal
         isOpen={isSearchModalOpen}
-        onClose={() => setIsSearchModalOpen(false)}
+        onClose={handleCloseSearchModal}
         existingBooks={books}
-        onSelectExistingBook={(b) => {
-          setDetailModalBook(b);
-        }}
+        onSelectExistingBook={handleOpenDetailModal}
         onAddOnlineBook={handleAddOnlineBook}
       />
 
       {/* Book Detail Modal */}
       <BookDetailModal
         book={detailModalBook}
-        onClose={() => setDetailModalBook(null)}
+        onClose={handleCloseDetailModal}
         onRequestDelete={handleRequestDelete}
       />
 

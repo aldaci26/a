@@ -11,8 +11,6 @@ class NaturalAudioEngine {
   private audioCtx: AudioContext | null = null;
   private crackleTimer: number | null = null;
   private forestTimer: number | null = null;
-  private cricketSource: AudioBufferSourceNode | null = null;
-  private cricketGain: GainNode | null = null;
 
   private soundUrls = {
     // Fireplace: 2 layered authentic Google Actions streams for warmth & volume
@@ -78,25 +76,6 @@ class NaturalAudioEngine {
       this.forestTimer = null;
     }
 
-    // Clean up gentle crickets synthesizer
-    if (this.cricketSource) {
-      try {
-        this.cricketSource.stop();
-        this.cricketSource.disconnect();
-      } catch {
-        // ignore
-      }
-      this.cricketSource = null;
-    }
-    if (this.cricketGain) {
-      try {
-        this.cricketGain.disconnect();
-      } catch {
-        // ignore
-      }
-      this.cricketGain = null;
-    }
-
     // Fade out and release all active audios
     const audiosToFade = [...this.activeAudios];
     this.activeAudios = [];
@@ -107,8 +86,13 @@ class NaturalAudioEngine {
         vol -= 0.15;
         if (vol <= 0.05) {
           window.clearInterval(fadeInterval);
-          audio.pause();
-          audio.src = '';
+          try {
+            audio.pause();
+            audio.removeAttribute('src');
+            audio.load();
+          } catch (e) {
+            console.warn('[AudioEngine] Ses durdurulurken hata:', e);
+          }
         } else {
           audio.volume = Math.max(0, vol);
         }
@@ -118,8 +102,10 @@ class NaturalAudioEngine {
     if (this.thunderAudio) {
       try {
         this.thunderAudio.pause();
-      } catch {
-        // ignore
+        this.thunderAudio.removeAttribute('src');
+        this.thunderAudio.load();
+      } catch (e) {
+        console.warn('[AudioEngine] Gök gürültüsü sesi durdurulurken hata:', e);
       }
       this.thunderAudio = null;
     }
@@ -133,10 +119,14 @@ class NaturalAudioEngine {
     audio.loop = true;
     audio.volume = Math.min(1.0, Math.max(0, volume));
 
+    audio.addEventListener('error', (e) => {
+      console.warn(`[AudioEngine] Ortam ses akışı yüklenemedi (${url}):`, e);
+    });
+
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch((err) => {
-        console.warn('Audio play waiting for interaction or network:', err);
+        console.warn('[AudioEngine] Oynatma tarayıcı etkileşimi bekliyor veya engellendi:', err);
       });
     }
 
@@ -268,9 +258,6 @@ class NaturalAudioEngine {
     // Layer 2: Morning forest meadow with gentle woodland acoustic texture (boosted to 0.60)
     this.createLoopingAudio(this.soundUrls.forestMeadow, 0.60);
 
-    // Layer 3: Sinir bozmayacak şekilde, yumuşak ve huzurlu cırcır böceği (gentle night crickets)
-    this.startGentleCrickets();
-
     // Dynamic procedural & acoustic forest events scheduler with rich natural variety
     const scheduleNextForestSound = () => {
       if (this.currentMode !== 'forest') return;
@@ -310,68 +297,6 @@ class NaturalAudioEngine {
 
     // First event after 2.2 seconds
     this.forestTimer = window.setTimeout(scheduleNextForestSound, 2200);
-  }
-
-  /**
-   * Sinir bozmayan, tatlı ve dinlendirici cırcır böceği sentezleyicisi
-   */
-  private startGentleCrickets() {
-    try {
-      const ctx = this.getAudioContext();
-      const sampleRate = ctx.sampleRate;
-      // 3.5-second loop of soft rhythmic chirping with restful pauses
-      const bufferLength = Math.floor(sampleRate * 3.5);
-      const buffer = ctx.createBuffer(1, bufferLength, sampleRate);
-      const data = buffer.getChannelData(0);
-
-      // Create gentle rhythmic pulses at ~4.4 kHz
-      for (let i = 0; i < bufferLength; i++) {
-        const t = i / sampleRate;
-        // Two soft chirping cycles per 3.5s loop
-        let envelope = 0;
-        if (t > 0.4 && t < 1.1) {
-          // Chirp cluster 1
-          const phase = ((t - 0.4) * 16) % 1.0;
-          envelope = Math.sin(phase * Math.PI) * Math.sin(((t - 0.4) / 0.7) * Math.PI);
-        } else if (t > 2.0 && t < 2.6) {
-          // Chirp cluster 2 (gentler)
-          const phase = ((t - 2.0) * 14) % 1.0;
-          envelope = Math.sin(phase * Math.PI) * Math.sin(((t - 2.0) / 0.6) * Math.PI) * 0.7;
-        }
-
-        if (envelope > 0) {
-          // Pure sweet sine tone modulated slightly
-          const carrier = Math.sin(2 * Math.PI * 4400 * t) + 0.3 * Math.sin(2 * Math.PI * 4800 * t);
-          data[i] = carrier * envelope * 0.25;
-        } else {
-          data[i] = 0;
-        }
-      }
-
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(4500, ctx.currentTime);
-      filter.Q.setValueAtTime(3.0, ctx.currentTime);
-
-      const gain = ctx.createGain();
-      // Very gentle volume: 0.038 so it's a soothing background whisper, never shrill
-      gain.gain.setValueAtTime(0.001, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.038, ctx.currentTime + 1.5);
-
-      source.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-
-      source.start();
-      this.cricketSource = source;
-      this.cricketGain = gain;
-    } catch {
-      // ignore
-    }
   }
 
   /**

@@ -28,10 +28,13 @@ app.get('/api/health', (req, res) => {
 });
 
 async function startServer() {
-  const isProduction = process.env.NODE_ENV === 'production' || !fs.existsSync(path.join(__dirname, 'src'));
+  const distPath = path.join(__dirname, 'dist');
+  const distExists = fs.existsSync(distPath);
+  const isProduction = process.env.NODE_ENV === 'production' || (distExists && !fs.existsSync(path.join(__dirname, 'src')));
 
   if (!isProduction) {
     // Development mode with Vite middleware
+    console.log('[Server] Geliştirme modunda başlatılıyor (Vite middleware)...');
     const { createServer } = await import('vite');
     const vite = await createServer({
       server: { middlewareMode: true },
@@ -40,7 +43,10 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // Production mode
-    const distPath = path.join(__dirname, 'dist');
+    console.log('[Server] Prodüksiyon modunda başlatılıyor (dist statik servis)...');
+    if (!distExists) {
+      console.error('[Server] HATA: dist klasörü bulunamadı! Lütfen önce "npm run build" çalıştırın.');
+    }
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
