@@ -42,6 +42,9 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     setSoundMode(mode);
     setIsSoundMenuOpen(false);
 
+    // Explicit mobile audio unlock on direct user interaction
+    audioEngine.unlockAudio();
+
     if (mode === 'off') {
       audioEngine.stopAmbient();
     } else if (mode === 'fireplace') {

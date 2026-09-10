@@ -78,38 +78,47 @@ export function loadBooks(): Book[] {
       }
     }
 
-    if (rawJson) {
+    if (rawJson !== null) {
       const parsed = JSON.parse(rawJson);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
+        // If user explicitly deleted all books, keep the empty array state!
+        if (parsed.length === 0) {
+          return [];
+        }
+
         const sanitizedList: Book[] = [];
         parsed.forEach((item, idx) => {
           const sanitized = sanitizeBook(item, idx);
           if (sanitized) sanitizedList.push(sanitized);
         });
 
-        if (sanitizedList.length > 0) {
-          // If we migrated from an old key, save to current key and clean old keys
-          if (sourceKey !== CURRENT_STORAGE_KEY) {
-            saveBooks(sanitizedList);
-            LEGACY_STORAGE_KEYS.forEach((oldKey) => {
-              try {
-                localStorage.removeItem(oldKey);
-              } catch {
-                // ignore
-              }
-            });
-          }
-
-          return sortBooksByDateAddedDesc(sanitizedList);
+        // If we migrated from an old key, save to current key and clean old keys
+        if (sourceKey !== CURRENT_STORAGE_KEY) {
+          saveBooks(sanitizedList);
+          LEGACY_STORAGE_KEYS.forEach((oldKey) => {
+            try {
+              localStorage.removeItem(oldKey);
+            } catch {
+              // ignore
+            }
+          });
         }
+
+        return sortBooksByDateAddedDesc(sanitizedList);
       }
     }
   } catch (err) {
     console.warn('[Storage] Yerel depolama okuma hatası, varsayılan kitaplara dönülüyor:', err);
   }
 
-  // Fallback to default initial books
-  return sortBooksByDateAddedDesc([...INITIAL_BOOKS]);
+  // First time initialization: populate default books and persist immediately
+  const initial = sortBooksByDateAddedDesc([...INITIAL_BOOKS]);
+  try {
+    localStorage.setItem(CURRENT_STORAGE_KEY, JSON.stringify(initial));
+  } catch {
+    // ignore
+  }
+  return initial;
 }
 
 /**
