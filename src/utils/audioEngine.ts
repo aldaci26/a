@@ -37,16 +37,14 @@ class NaturalAudioEngine {
     // Ocean: Real ocean waves crashing on shoreline
     oceanWaves: 'https://cdn.jsdelivr.net/gh/remvze/moodist@main/public/sounds/nature/waves.mp3',
 
-    // Forest Ambience: Real wind whispering through canopy + leaves rustle
-    forestWind: 'https://cdn.jsdelivr.net/gh/remvze/moodist@main/public/sounds/nature/wind-in-trees.mp3',
-    forestLeaves: 'https://cdn.jsdelivr.net/gh/remvze/moodist@main/public/sounds/nature/walk-on-leaves.mp3',
+    // Forest Ambience: Pure forest river water stream + serene woodland birds
+    forestStream: 'https://cdn.jsdelivr.net/gh/remvze/moodist@main/public/sounds/nature/river.mp3',
 
-    // 100% REAL WILDLIFE RECORDINGS (No synthesizer/AI beeps whatsoever)
+    // 100% REAL WILDLIFE RECORDINGS (No synthesizer/AI beeps, no hissing crickets)
     realOwl: 'https://cdn.jsdelivr.net/gh/remvze/moodist@main/public/sounds/animals/owl.mp3',
     realWolf: 'https://cdn.jsdelivr.net/gh/remvze/moodist@main/public/sounds/animals/wolf.mp3',
     realBirds: 'https://cdn.jsdelivr.net/gh/remvze/moodist@main/public/sounds/animals/birds.mp3',
     realWoodpecker: 'https://cdn.jsdelivr.net/gh/remvze/moodist@main/public/sounds/animals/woodpecker.mp3',
-    realCrickets: 'https://cdn.jsdelivr.net/gh/remvze/moodist@main/public/sounds/animals/crickets.mp3',
     realCrows: 'https://cdn.jsdelivr.net/gh/remvze/moodist@main/public/sounds/animals/crows.mp3'
   };
 
@@ -127,7 +125,6 @@ class NaturalAudioEngine {
       this.soundUrls.realBirds,
       this.soundUrls.realWolf,
       this.soundUrls.realWoodpecker,
-      this.soundUrls.realCrickets,
       this.soundUrls.realCrows
     ];
 
@@ -403,18 +400,15 @@ class NaturalAudioEngine {
   }
 
   /**
-   * 4. ORMAN (Gerçek Orman Tabiatı, Gerçek Baykuş, Kurt, Kuşlar, Ağaçkakan ve Cırcır Böcekleri)
-   * KESİNLİKLE YAPAY/AI OSİLATÖR SESİ YOKTUR. TÜM HAYVAN SESLERİ %100 GERÇEK AKUSTİK KAYITLARDAN ÇALAR.
+   * 4. ORMAN (Huzurlu Orman Deresi, Gerçek Baykuş, Kurt, Kuşlar, Ağaçkakan ve Dağ Kargası)
+   * KESİNLİKLE YAPAY/AI SES, YÜRÜME SESİ VEYA TISLAYAN "SSSSS" GÜRÜLTÜSÜ YOKTUR.
    */
   public playForest() {
     this.stopAmbient();
     this.currentMode = 'forest';
 
-    // Background Layer 1: Wind whispering through forest trees
-    this.createLoopingAudio(this.soundUrls.forestWind, 0.75);
-
-    // Background Layer 2: Subtle leaves rustle
-    this.createLoopingAudio(this.soundUrls.forestLeaves, 0.40);
+    // Background Layer: Gentle serene forest river stream (no hissing, no white noise)
+    this.createLoopingAudio(this.soundUrls.forestStream, 0.42);
 
     // Dynamic authentic forest wildlife event scheduler
     const scheduleNextForestAnimal = () => {
@@ -422,19 +416,16 @@ class NaturalAudioEngine {
 
       const roll = Math.random();
 
-      if (roll < 0.26) {
+      if (roll < 0.32) {
         // Gerçek Baykuş Ötüşü (Real Owl Hooting)
         this.playRealAudio(this.soundUrls.realOwl, 0.48);
-      } else if (roll < 0.50) {
+      } else if (roll < 0.60) {
         // Gerçek Orman Kuşları Cıvıltısı (Real Forest Birds)
         this.playRealAudio(this.soundUrls.realBirds, 0.45);
-      } else if (roll < 0.68) {
+      } else if (roll < 0.78) {
         // Gerçek Ağaçkakan Tıklaması (Real Woodpecker)
         this.playRealAudio(this.soundUrls.realWoodpecker, 0.42);
-      } else if (roll < 0.82) {
-        // Gerçek Orman Cırcır Böcekleri (Real Forest Crickets)
-        this.playRealAudio(this.soundUrls.realCrickets, 0.38);
-      } else if (roll < 0.92) {
+      } else if (roll < 0.90) {
         // Gerçek Derinden Gelen Kurt Uluması (Real Wolf Howl)
         this.playRealAudio(this.soundUrls.realWolf, 0.32);
       } else {
@@ -448,7 +439,7 @@ class NaturalAudioEngine {
     };
 
     // First animal call begins shortly after entering forest mode
-    this.forestTimer = window.setTimeout(scheduleNextForestAnimal, 2000);
+    this.forestTimer = window.setTimeout(scheduleNextForestAnimal, 1800);
   }
 
   /**
